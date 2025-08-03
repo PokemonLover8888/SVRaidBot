@@ -2919,7 +2919,7 @@ namespace SysBot.Pokemon.SV.BotRaid
             }
 
             string disclaimer = _settings.ActiveRaids.Count > 1
-                                ? $"notpaldea.net"
+                                ? $"discord.gg/pkm-universe"
                                 : "";
 
             var turl = string.Empty;

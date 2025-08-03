@@ -372,20 +372,23 @@ namespace SysBot.Pokemon.Discord
         private async Task HandleMessageAsync(SocketMessage arg)
         {
             // Bail out if it's a System Message.
-            if (arg is not SocketUserMessage msg)
+            if (arg is not SocketUserMessage msg || msg.Author.IsBot || msg.Author.Id == _client.CurrentUser.Id)
                 return;
 
-            // We don't want the bot to respond to itself or other bots.
-            if (msg.Author.Id == _client.CurrentUser.Id || msg.Author.IsBot)
-                return;
+            // Get the list of prefixes from the configuration
+            var prefixes = Hub.Config.Discord.CommandPrefix; // Assuming CommandPrefix is a List<string>
+            if (prefixes == null || !prefixes.Any())
+                return; // No prefixes defined
 
-            // Create a number to track where the prefix ends and the command begins
-            int pos = 0;
-            if (msg.HasStringPrefix(Hub.Config.Discord.CommandPrefix, ref pos))
+            // Check if the message starts with any of the defined prefixes
+            int pos = -1;
+            foreach (var prefix in prefixes)
             {
-                bool handled = await TryHandleCommandAsync(msg, pos).ConfigureAwait(false);
-                if (handled)
-                    return;
+                if (msg.HasStringPrefix(prefix, ref pos))
+                {
+                    bool handled = await TryHandleCommandAsync(msg, pos).ConfigureAwait(false);
+                    if (handled) return;
+                }
             }
         }
 
@@ -398,8 +401,7 @@ namespace SysBot.Pokemon.Discord
             var mgr = Manager;
             if (!mgr.CanUseCommandUser(msg.Author.Id))
             {
-                await msg.Channel.SendMessageAsync("You are not permitted to use this command.").ConfigureAwait(false);
-                return true;
+                await msg.Channel.SendMessageAsync($"{msg.Author.Mention}, You are blacklisted from using the bots! Contact the bot owner <@1021839664287596684>!").ConfigureAwait(false);
             }
             if (!mgr.CanUseCommandChannel(msg.Channel.Id) && msg.Author.Id != mgr.Owner)
             {
